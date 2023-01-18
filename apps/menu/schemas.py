@@ -1,7 +1,7 @@
 import uuid
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class BaseSchema(BaseModel):
@@ -12,17 +12,35 @@ class BaseSchema(BaseModel):
         orm_mode = True
 
 
+class MenuSchemaList(BaseSchema):
+    id: uuid.UUID
+    submenus_count: int = 0
+    dishes_count: int = 0
+
+
 class MenuSchema(BaseSchema):
     id: uuid.UUID
     submenus_count: int = 0
     dishes_count: int = 0
 
 
-class SubmenuSchema(BaseSchema):
+class SubmenuSchemaList(BaseSchema):
+    id: uuid.UUID
     dishes_count: int = 0
-    # menu_id: int
+    # menu_id: uuid.UUID
+
+
+class SubmenuSchema(BaseSchema):
+    id: uuid.UUID
+    dishes_count: int = 0
+
+
+class DishSchemaList(BaseSchema):
+    id: uuid.UUID
+    # submenu_id: int
+    price: str
 
 
 class DishSchema(BaseSchema):
     # submenu_id: int
-    price: Decimal
+    price: str
