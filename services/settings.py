@@ -1,0 +1,3 @@
+from confings import DATA_BASE_URL
+
+DATABASE_URL = DATA_BASE_URL
