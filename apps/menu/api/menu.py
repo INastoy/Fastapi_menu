@@ -14,8 +14,8 @@ def get_menus(menu: MenuCRUD = Depends()):
     return menu.get_all()
 
 
-# @router.get('/{menu_id}', response_model=MenuSchema, status_code=HTTP_200_OK)
-@router.get('/{menu_id}', status_code=HTTP_200_OK)
+@router.get('/{menu_id}', response_model=MenuSchema, status_code=HTTP_200_OK)
+# @router.get('/{menu_id}', status_code=HTTP_200_OK)
 def get_menu(menu_id: str, menu: MenuCRUD = Depends()):
     return menu.get_by_id(menu_id)
 

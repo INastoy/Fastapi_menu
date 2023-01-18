@@ -14,7 +14,7 @@ def get_dishes(submenu_id: str, dish: DishCRUD = Depends()):
     return dish.get_all(submenu_id)
 
 
-@router.get('/{dish_id}', response_model=DishSchema, status_code=HTTP_200_OK)
+@router.get('/{dish_id}', response_model=DishSchemaList, status_code=HTTP_200_OK)
 def get_dish(submenu_id: str, dish_id: str, dish: DishCRUD = Depends()):
     return dish.get_by_id(dish_id, submenu_id)
 
@@ -31,5 +31,5 @@ def delete_dish(submenu_id: str, dish_id: str, dish: DishCRUD = Depends()):
 
 
 @router.patch('/{dish_id}', response_model=DishSchema)
-def update_dish(submenu_id: str, dish_id: str, dish_data: BaseSchema, dish: DishCRUD = Depends()):
+def update_dish(submenu_id: str, dish_id: str, dish_data: DishSchema, dish: DishCRUD = Depends()):
     return dish.update(dish_id, dish_data, submenu_id)

@@ -67,7 +67,7 @@ class MenuCRUD(AbstractCRUD):
             .all()
 
     def get_by_id(self, item_id: str, *args, **kwargs) -> Type[Base]:
-        return self.session.query(
+        item = self.session.query(
             Menu.id,
             Menu.title,
             Menu.description,
@@ -77,6 +77,9 @@ class MenuCRUD(AbstractCRUD):
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)\
             .group_by(Menu.id)\
             .first()
+        if not item:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='menu not found')
+        return item
         # return self.session.query(Menu).group_by(Menu.id).all()
     #
     # def get_by_id(self, menu_id: int) -> Menu:
@@ -137,7 +140,7 @@ class SubmenuCRUD(AbstractCRUD):
         self.session.commit()
 
     def get_by_id(self, submenu_id: str, menu_id: str, *args, **kwargs) -> Type[Base]:
-        return self.session.query(
+        item = self.session.query(
             Submenu.id,
             Submenu.title,
             Submenu.description,
@@ -146,6 +149,9 @@ class SubmenuCRUD(AbstractCRUD):
             .filter(Submenu.menu_id == menu_id)\
             .group_by(Submenu.id)\
             .first()
+        if not item:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='submenu not found')
+        return item
 
     def update(self, item_id: str, item_data: BaseSchema, menu_id: str, *args, **kwargs) -> Type[Base]:
         item = self._get(item_id, menu_id)
