@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy import func, distinct
 from starlette import status
 
-from services.database import Session, get_session
+from core.database import Session, get_session
 from .models import Menu, Submenu, Dish, Base
 from .schemas import BaseSchema
 
@@ -19,7 +19,7 @@ class AbstractCRUD:
     def get_all(self, *args, **kwargs) -> List[Type[Base]]:
         return self.session.query(self.model).all()
 
-    def get_by_id(self, item_id: str, *args, **kwargs) -> Type[Base]:
+    def get_by_id(self, item_id: UUID, *args, **kwargs) -> Type[Base]:
         return self._get(item_id)
 
     def create(self, item_data: BaseSchema, *args, **kwargs) -> Type[Base]:
@@ -28,21 +28,22 @@ class AbstractCRUD:
         self.session.commit()
         return item
 
-    def update(self, item_id: str, item_data: BaseSchema, *args, **kwargs) -> Type[Base]:
+    def update(self, item_id: UUID, item_data: BaseSchema, *args, **kwargs) -> Type[Base]:
         item = self._get(item_id)
         for field, value in item_data:
             setattr(item, field, value)
         self.session.commit()
         return item
 
-    def delete(self, item_id: str, *args, **kwargs):
+    def delete(self, item_id: UUID, *args, **kwargs):
         item = self._get(item_id)
         self.session.delete(item)
         self.session.commit()
+        return item
 
-    def _get(self, item_id: str, *args, **kwargs) -> Optional[Type[Base]]:
-        if len(item_id) != 36:
-            raise HTTPException(status.HTTP_404_NOT_FOUND)
+    def _get(self, item_id: UUID, *args, **kwargs) -> Optional[Type[Base]]:
+        if not isinstance(item_id, UUID):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='uuid4 only')
         item = self.session.query(self.model).filter(self.model.id == item_id).first()
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail='menu not found')
@@ -66,15 +67,18 @@ class MenuCRUD(AbstractCRUD):
             .group_by(Menu.id)\
             .all()
 
-    def get_by_id(self, item_id: str, *args, **kwargs) -> Type[Base]:
+    def get_by_id(self, item_id: UUID, *args, **kwargs) -> Type[Base]:
+        if not isinstance(item_id, UUID):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='uuid4 only')
         item = self.session.query(
             Menu.id,
             Menu.title,
             Menu.description,
             func.count(distinct(Submenu.id)).label('submenus_count'),
-            func.count(distinct(Dish.id)).label('dishes_count'))\
-            .outerjoin(Submenu, Menu.id == Submenu.menu_id)\
+            func.count(distinct(Dish.id)).label('dishes_count')) \
+            .outerjoin(Submenu, Menu.id == Submenu.menu_id) \
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)\
+            .filter(Menu.id == item_id)\
             .group_by(Menu.id)\
             .first()
         if not item:
@@ -128,18 +132,7 @@ class SubmenuCRUD(AbstractCRUD):
             .group_by(Submenu.id)\
             .all()
 
-    def create(self, item_data: BaseSchema, menu_id: str) -> Type[Base]:
-        item = self.model(**item_data.dict(), menu_id=menu_id)
-        self.session.add(item)
-        self.session.commit()
-        return item
-
-    def delete(self, item_id: str, menu_id: str, *args, **kwargs):
-        item = self._get(item_id, menu_id)
-        self.session.delete(item)
-        self.session.commit()
-
-    def get_by_id(self, submenu_id: str, menu_id: str, *args, **kwargs) -> Type[Base]:
+    def get_by_id(self, submenu_id: UUID, menu_id: UUID, *args, **kwargs) -> Type[Base]:
         item = self.session.query(
             Submenu.id,
             Submenu.title,
@@ -147,22 +140,36 @@ class SubmenuCRUD(AbstractCRUD):
             func.count(distinct(Dish.id)).label('dishes_count'))\
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)\
             .filter(Submenu.menu_id == menu_id)\
+            .filter(Submenu.id == submenu_id)\
             .group_by(Submenu.id)\
             .first()
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail='submenu not found')
         return item
 
-    def update(self, item_id: str, item_data: BaseSchema, menu_id: str, *args, **kwargs) -> Type[Base]:
+    def create(self, item_data: BaseSchema, menu_id: str) -> Type[Base]:
+        item = self.model(**item_data.dict(), menu_id=menu_id)
+        self.session.add(item)
+        self.session.commit()
+        return item
+
+    def delete(self, item_id: UUID, menu_id: UUID, *args, **kwargs):
+        item = self._get(item_id, menu_id)
+        self.session.delete(item)
+        self.session.commit()
+
+    def update(self, item_id: UUID, item_data: BaseSchema, menu_id: UUID, *args, **kwargs) -> Type[Base]:
         item = self._get(item_id, menu_id)
         for field, value in item_data:
             setattr(item, field, value)
         self.session.commit()
         return item
 
-    def _get(self, submenu_id: str, menu_id: str) -> Optional[Submenu]:
-        if len(submenu_id) != 36:
-            raise HTTPException(status.HTTP_404_NOT_FOUND)
+    def _get(self, submenu_id: UUID, menu_id: UUID) -> Optional[Submenu]:
+        # if len(submenu_id) != 36:
+        #     raise HTTPException(status.HTTP_404_NOT_FOUND)
+        if not isinstance(submenu_id, UUID):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='uuid4 only')
         menu = self.session.query(Submenu)\
             .filter(Submenu.id == submenu_id)\
             .filter(Menu.id == menu_id)\
@@ -178,10 +185,13 @@ class DishCRUD(AbstractCRUD):
         super().__init__(session)
         self.model = Dish
 
-    def get_all(self, submenu_id: str) -> List[Submenu]:
+    def get_all(self, submenu_id: UUID) -> List[Dish]:
         return self.session.query(Dish)\
             .filter(Dish.submenu_id == submenu_id)\
             .all()
+
+    def get_by_id(self, dish_id: UUID, submenu_id: UUID, *args, **kwargs) -> Type[Base]:
+        return self._get(dish_id, submenu_id)
 
     def create(self, item_data: BaseSchema, submenu_id: str) -> Type[Base]:
         item = self.model(**item_data.dict(), submenu_id=submenu_id)
@@ -189,24 +199,21 @@ class DishCRUD(AbstractCRUD):
         self.session.commit()
         return item
 
-    def delete(self, item_id: str, submenu_id: str, *args, **kwargs):
+    def delete(self, item_id: UUID, submenu_id: UUID, *args, **kwargs):
         item = self._get(item_id, submenu_id)
         self.session.delete(item)
         self.session.commit()
 
-    def get_by_id(self, item_id: str, submenu_id: str, *args, **kwargs) -> Type[Base]:
-        return self._get(item_id, submenu_id)
-
-    def update(self, item_id: str, item_data: BaseSchema, submenu_id: str, *args, **kwargs) -> Type[Base]:
+    def update(self, item_id: UUID, item_data: BaseSchema, submenu_id: UUID, *args, **kwargs) -> Type[Base]:
         item = self._get(item_id, submenu_id)
         for field, value in item_data:
             setattr(item, field, value)
         self.session.commit()
         return item
 
-    def _get(self, dish_id: str, submenu_id: str) -> Optional[Submenu]:
-        if len(dish_id) != 36:
-            raise HTTPException(status.HTTP_404_NOT_FOUND)
+    def _get(self, dish_id: UUID, submenu_id: UUID) -> Optional[Submenu]:
+        if not isinstance(dish_id, UUID):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='uuid4 only')
         dish = self.session.query(Dish)\
             .filter(Dish.id == dish_id)\
             .filter(Submenu.id == submenu_id) \

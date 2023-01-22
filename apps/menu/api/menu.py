@@ -1,6 +1,8 @@
+import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends
+from pydantic import UUID4
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from apps.menu.crud import MenuCRUD
@@ -15,8 +17,7 @@ def get_menus(menu: MenuCRUD = Depends()):
 
 
 @router.get('/{menu_id}', response_model=MenuSchema, status_code=HTTP_200_OK)
-# @router.get('/{menu_id}', status_code=HTTP_200_OK)
-def get_menu(menu_id: str, menu: MenuCRUD = Depends()):
+def get_menu(menu_id: uuid.UUID, menu: MenuCRUD = Depends()):
     return menu.get_by_id(menu_id)
 
 
@@ -27,10 +28,10 @@ def create_menu(menu_data: BaseSchema, menu: MenuCRUD = Depends()):
 
 # @router.delete('/{menu_id}', status_code=HTTP_204_NO_CONTENT)
 @router.delete('/{menu_id}', status_code=HTTP_200_OK)
-async def delete_menu(menu_id: str, menu: MenuCRUD = Depends()):
+async def delete_menu(menu_id: UUID4, menu: MenuCRUD = Depends()):
     return menu.delete(menu_id)
 
 
 @router.patch('/{menu_id}', response_model=MenuSchema)
-async def update_menu(menu_id: str, menu_data: BaseSchema, menu: MenuCRUD = Depends()):
+async def update_menu(menu_id: uuid.UUID, menu_data: BaseSchema, menu: MenuCRUD = Depends()):
     return menu.update(menu_id, menu_data)

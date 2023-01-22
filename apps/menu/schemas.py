@@ -1,7 +1,7 @@
 import uuid
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4, Field
 
 
 class BaseSchema(BaseModel):
@@ -42,5 +42,6 @@ class DishSchemaList(BaseSchema):
 
 
 class DishSchema(BaseSchema):
+    # id: uuid.UUID
     # submenu_id: int
     price: str
