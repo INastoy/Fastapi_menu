@@ -32,7 +32,7 @@ docker-compose -f docker-compose.test.yml up -d
 
 2. Создаем виртуальное окружение:
 ```shell
-python -m venv venv .
+python -m venv venv
 ```
 3. Активируем виртуальное окружение:
 ```shell
