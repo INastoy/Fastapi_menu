@@ -1,8 +1,10 @@
 Пример бэкенда для сайта ресторана, написанного на FastAPI
-
-
-В репозитории с проектом создаем файл .env и заполняем его переменными окружения:
 -
+
+*Запуск в docker контейнере:*
+-
+1. В репозитории с проектом создаем файл .env и заполняем его переменными окружения:
+
 
 >PGUSER: "postgres"\
 >POSTGRES_USER: "postgres"\
@@ -12,13 +14,13 @@
 >PROD_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_ylab:5432/ylab"\
 >DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/menu_test"
 
-Запуск проекта в докер-контейнере:
--
+2. Запуск проекта в докер-контейнере:
+
 ```shell
 docker-compose -f docker-compose.yml up -d
 ```
-Запуск докер-контейнера с тестами:
--
+3. Запуск докер-контейнера с тестами:
+
 ```shell
 docker-compose -f docker-compose.test.yml up -d
 ```
@@ -26,21 +28,30 @@ docker-compose -f docker-compose.test.yml up -d
 *Полная установка:*
 -
 
-Заходим в репозиторий с проектом
+1. Заходим в репозиторий с проектом
 
-Создаем виртуальное окружение:
+2. Создаем виртуальное окружение:
 ```shell
 python -m venv venv .
 ```
-
-Активируем виртуальное окружение:
+3. Активируем виртуальное окружение:
 ```shell
 ./venv/Scripts/activate
 ```
-Устанавливаем зависимости:
+4. Устанавливаем зависимости:
 ```shell
 pip install -r requirements.txt
 ```
+5. В репозитории с проектом создаем файл .env и заполняем его переменными окружения:
+
+
+>PGUSER: "postgres"\
+>POSTGRES_USER: "postgres"\
+>POSTGRES_PASSWORD = "passwd"
+>
+>TEST_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@test_postgres_ylab:5432/test_ylab"\
+>PROD_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_ylab:5432/ylab"\
+>DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/menu_test"
 
 Запуск проекта:
 -
