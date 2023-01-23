@@ -30,7 +30,7 @@ class TestMenu:
     def test_get_menu_ok(self, client, menu, session):
         response = client.get(f'/api/v1/menus/{self.menu1.id}')
         menu_from_response = MenuSchema(**response.json())
-        menu_from_db = MenuSchema(**menu.get_by_id(self.menu1.id))
+        menu_from_db: MenuSchema = MenuSchema(**menu.get_by_id(self.menu1.id))
 
         assert response.status_code == 200
         assert menu_from_response == menu_from_db

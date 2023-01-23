@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  test_fastapi_ylab:
+    container_name: test_fastapi_ylab
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - SQLALCHEMY_SILENCE_UBER_WARNING=1
+    command:
+      - "pytest"
+    volumes:
+      - .:/app
+    networks:
+      - test_ylab_network
+#    ports:
+#      - "8000:8000"
+    depends_on:
+      test_postgres_ylab:
+        condition: service_healthy
+
+  test_postgres_ylab:
+    container_name: test_postgres_ylab
+    image: postgres:15.1-alpine
+    environment:
+      POSTGRES_DB: "test_ylab"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "passwd"
+      PGUSER: "postgres"
+#    entrypoint: sh -c "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    expose:
+      - 5433
+    ports:
+      - "5433:5433"
+    networks:
+      - test_ylab_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "postgres", "-d", "test_ylab"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+networks:
+  test_ylab_network:
+    name: test_ylab_network

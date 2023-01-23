@@ -1,5 +1,7 @@
 venv
 .idea
+.env
 menu app.postman_environment.json
 menu app.postman_collection.json
 confings.py
+./.pytest_cache

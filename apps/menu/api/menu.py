@@ -6,12 +6,12 @@ from pydantic import UUID4
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from apps.menu.crud import MenuCRUD
-from apps.menu.schemas import MenuSchemaList, BaseSchema, MenuSchema
+from apps.menu.schemas import MenuSchema, BaseSchema, MenuSchema
 
 router = APIRouter(prefix='/menus', tags=['menu'])
 
 
-@router.get('/', response_model=List[MenuSchemaList], status_code=HTTP_200_OK)
+@router.get('/', response_model=List[MenuSchema], status_code=HTTP_200_OK)
 def get_menus(menu: MenuCRUD = Depends()):
     return menu.get_all()
 

@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 
 from apps.menu.models import Menu, Submenu, Dish
-from apps.menu.schemas import DishSchemaList
+from apps.menu.schemas import DishSchema
 from core.database import get_session
 
 
@@ -41,8 +41,8 @@ class TestDish:
 
     def test_get_dishes_ok(self, client, dish):
         response = client.get(f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}/dishes')
-        dishes_from_response = [DishSchemaList(**dish) for dish in response.json()]
-        dishes_from_db = [DishSchemaList(**as_dict(dish_data)) for dish_data in
+        dishes_from_response = [DishSchema(**dish) for dish in response.json()]
+        dishes_from_db = [DishSchema(**as_dict(dish_data)) for dish_data in
                           dish.get_all(submenu_id=self.submenu1.id)]
 
         assert response.status_code == 200
@@ -50,8 +50,8 @@ class TestDish:
 
     def test_get_dish_ok(self, client, dish):
         response = client.get(f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}/dishes/{self.dish1.id}')
-        dish_from_response = DishSchemaList(**response.json())
-        dish_from_db = DishSchemaList(**as_dict(dish.get_by_id(dish_id=self.dish1.id, submenu_id=self.submenu1.id)))
+        dish_from_response = DishSchema(**response.json())
+        dish_from_db = DishSchema(**as_dict(dish.get_by_id(dish_id=self.dish1.id, submenu_id=self.submenu1.id)))
 
         assert response.status_code == 200
         assert dish_from_response == dish_from_db
@@ -59,10 +59,10 @@ class TestDish:
     def test_create_dish_ok(self, client, dish):
         response = client.post(f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}/dishes',
                                json=self.data_for_create)
-        dish_from_response = DishSchemaList(**response.json())
+        dish_from_response = DishSchema(**response.json())
         self.created_dish_id = dish_from_response.id
-        dish_from_db = DishSchemaList(**as_dict(dish.get_by_id(dish_id=self.created_dish_id,
-                                                               submenu_id=self.submenu1.id)))
+        dish_from_db = DishSchema(**as_dict(dish.get_by_id(dish_id=self.created_dish_id,
+                                                           submenu_id=self.submenu1.id)))
 
         assert response.status_code == 201
         assert dish_from_response == dish_from_db
@@ -70,9 +70,9 @@ class TestDish:
     def test_update_dish_ok(self, client, dish):
         response = client.patch(f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}/dishes/{self.dish1.id}',
                                 json=self.data_for_update)
-        dish_from_response = DishSchemaList(**response.json())
+        dish_from_response = DishSchema(**response.json())
         # self.session.refresh(self.submenu1)
-        dish_from_db = DishSchemaList(**as_dict(dish.get_by_id(dish_id=self.dish1.id, submenu_id=self.submenu1.id)))
+        dish_from_db = DishSchema(**as_dict(dish.get_by_id(dish_id=self.dish1.id, submenu_id=self.submenu1.id)))
 
         assert response.status_code == 200
         assert dish_from_response == dish_from_db

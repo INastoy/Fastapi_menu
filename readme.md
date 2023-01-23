@@ -1,6 +1,7 @@
-Fastapi test project
+Пример бэкенда для сайта ресторана, написанного на FastAPI
 
-Установка:
+*Установка:*
+-
 
 Заходим в репозиторий с проектом
 
@@ -13,11 +14,23 @@ python -m venv venv .
 Устанавливаем зависимости:
 pip install -r requirements.txt
 
-Переходим в файл с настройками:
-services -> settings.py
+Создаем файл .env и заполняем его переменными окружения:
+-
 
-В файле settings.py прописываем пусть к БД:
-DATABASE_URL = 'postgresql://postgres:password@127.0.0.1:5432/menu_test'
+TEST_DATABASE_URL = "postgresql://postgres:passwd@test_postgres_ylab:5432/test_ylab"\
+DATABASE_URL = "postgresql://postgres:passwd@postgres_ylab:5432/ylab"\
+IS_RUN_TESTS = 0 
 
-Запуск проекта:
-python main.py
+Запускаем докер-контейнер:
+-
+docker-compose -f docker-compose.yml up -d
+
+Запускаем докер-контейнер с тестами:
+-
+В файле .env меняем значение:
+IS_RUN_TESTS = 1
+
+Выполняем команду:
+docker-compose -f docker-compose.test.yml up -d 
+
+

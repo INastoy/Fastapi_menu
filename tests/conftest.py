@@ -2,7 +2,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from apps.menu.crud import MenuCRUD, SubmenuCRUD, DishCRUD
-from core.database import get_session, Session
+from core.database import Session
 from main import app
 
 
