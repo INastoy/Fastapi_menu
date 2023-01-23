@@ -1,5 +1,7 @@
 Пример бэкенда для сайта ресторана, написанного на FastAPI
 -
+Стек технологий: 
+`FastAPI` `PostgreSQL` `SQLAlchemy`
 
 *Запуск в docker контейнере:*
 -
@@ -53,12 +55,12 @@ pip install -r requirements.txt
 >PROD_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_ylab:5432/ylab"\
 >DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/menu_test"
 
-Запуск проекта:
--
+6. Запуск проекта:
+
 ```shell
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 127.0.0.1 --port 8000
 ```
-
-
+7. Документация к проекту будет доступна по адресу:
+<http://127.0.0.1:8000/docs>
 
 
