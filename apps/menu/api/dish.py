@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from apps.menu.crud import DishCRUD
-from apps.menu.schemas import DishBaseSchema, BaseSchema, DishSchema
+from apps.menu.schemas import DishBaseSchema, DishSchema
 
 router = APIRouter(prefix='/menus/{menu_id}/submenus/{submenu_id}/dishes', tags=['dish'])
 
@@ -21,7 +21,7 @@ def get_dish(submenu_id: uuid.UUID, dish_id: uuid.UUID, dish: DishCRUD = Depends
 
 
 @router.post('/', response_model=DishSchema, status_code=HTTP_201_CREATED)
-def create_dish(submenu_id: str, dish_data: DishBaseSchema, dish: DishCRUD = Depends()):
+def create_dish(submenu_id: uuid.UUID, dish_data: DishBaseSchema, dish: DishCRUD = Depends()):
     return dish.create(dish_data, submenu_id)
 
 

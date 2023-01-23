@@ -38,6 +38,7 @@ class TestDish:
         self.data_for_create = dict(title='created_title', description='created_desc', price=522.1,
                                     submenu_id=str(self.submenu1.id))
         self.data_for_update = dict(title='updated_title', description='updated_desc', price=88.55)
+        self.dishes_count = self.session.query(Dish).filter(Dish.submenu_id == self.submenu1.id).count()
 
     def test_get_dishes_ok(self, client, dish):
         response = client.get(f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}/dishes')
@@ -45,6 +46,7 @@ class TestDish:
         dishes_from_db = [DishSchema(**as_dict(dish_data)) for dish_data in
                           dish.get_all(submenu_id=self.submenu1.id)]
 
+        assert len(response.json()) == self.dishes_count
         assert response.status_code == 200
         assert dishes_from_response == dishes_from_db
 
@@ -64,6 +66,7 @@ class TestDish:
         dish_from_db = DishSchema(**as_dict(dish.get_by_id(dish_id=self.created_dish_id,
                                                            submenu_id=self.submenu1.id)))
 
+        assert len(dish.get_all(submenu_id=self.submenu1.id)) == self.dishes_count + 1
         assert response.status_code == 201
         assert dish_from_response == dish_from_db
 
@@ -82,6 +85,7 @@ class TestDish:
         assert response.status_code == 200
         with pytest.raises(HTTPException) as ex:
             submenu_from_db = dish.get_by_id(dish_id=self.dish1.id, submenu_id=self.submenu1.id)
+
         assert ex.value.status_code == 404
         assert ex.value.detail == 'dish not found'
 

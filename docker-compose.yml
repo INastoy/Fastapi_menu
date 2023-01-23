@@ -6,11 +6,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-#    environment:
+    environment:
+      DATABASE_URL: "${PROD_DATABASE_URL}"
 #      CONFIG_FILE: "config.yaml"
     entrypoint: sh -c "uvicorn main:app --host 0.0.0.0 --port 8000"
-    volumes:
-      - .:/app
+#    volumes:
+#      - .:/app
     networks:
       - ylab_network
     ports:
@@ -24,9 +25,9 @@ services:
     image: postgres:15.1-alpine
     environment:
       POSTGRES_DB: "ylab"
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "passwd"
-      PGUSER: "postgres"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      PGUSER: "${PGUSER}"
     expose:
       - 5432
     ports:
@@ -35,8 +36,8 @@ services:
       - ylab_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-U", "postgres", "-d", "ylab"]
-      interval: 30s
-      timeout: 60s
+      interval: 10s
+      timeout: 30s
       retries: 5
       start_period: 80s
 

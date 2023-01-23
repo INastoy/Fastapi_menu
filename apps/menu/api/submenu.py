@@ -5,14 +5,13 @@ from fastapi import APIRouter, Depends
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from apps.menu.crud import SubmenuCRUD
-from apps.menu.schemas import SubmenuSchema, BaseSchema, SubmenuSchema
+from apps.menu.schemas import BaseSchema, SubmenuSchema
 
 router = APIRouter(prefix='/menus/{menu_id}/submenus', tags=['submenu'])
 
 
 @router.get('/', response_model=List[SubmenuSchema], status_code=HTTP_200_OK)
-# @router.get('/', status_code=HTTP_200_OK)
-def get_submenus(menu_id: str, submenu: SubmenuCRUD = Depends()):
+def get_submenus(menu_id: uuid.UUID, submenu: SubmenuCRUD = Depends()):
     return submenu.get_all(menu_id)
 
 
@@ -22,7 +21,7 @@ def get_submenu(menu_id: uuid.UUID, submenu_id: uuid.UUID, submenu: SubmenuCRUD 
 
 
 @router.post('/', response_model=SubmenuSchema, status_code=HTTP_201_CREATED)
-def create_submenu(menu_id: str, submenu_data: BaseSchema, submenu: SubmenuCRUD = Depends()):
+def create_submenu(menu_id: uuid.UUID, submenu_data: BaseSchema, submenu: SubmenuCRUD = Depends()):
     return submenu.create(submenu_data, menu_id)
 
 
