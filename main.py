@@ -5,7 +5,7 @@ from apps.menu.api import menu, submenu, dish
 from apps.menu.models import Base
 from core.database import engine
 
-app = FastAPI()
+app = FastAPI(title='Menu')
 router = APIRouter(prefix='/api/v1')
 
 router.include_router(menu.router)

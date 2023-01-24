@@ -5,16 +5,7 @@
 
 *Запуск в docker контейнере:*
 -
-1. В репозитории с проектом создаем файл .env и заполняем его переменными окружения:
-
-
->PGUSER: "postgres"\
->POSTGRES_USER: "postgres"\
->POSTGRES_PASSWORD = "passwd"
->
->TEST_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@test_postgres_ylab:5432/test_ylab"\
->PROD_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_ylab:5432/ylab"\
->DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/menu_test"
+1. В репозитории уже создан .env_example с переменными окружения
 
 2. Запуск проекта в докер-контейнере:
 

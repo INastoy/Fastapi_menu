@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, validator
 
 
 class BaseSchema(BaseModel):
