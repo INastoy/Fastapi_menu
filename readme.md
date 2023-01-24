@@ -1,7 +1,7 @@
 Пример бэкенда для сайта ресторана, написанного на FastAPI
 -
 Стек технологий: 
-`FastAPI` `PostgreSQL` `SQLAlchemy`
+`FastAPI` `PostgreSQL` `SQLAlchemy` `Pytest`
 
 *Запуск в docker контейнере:*
 -

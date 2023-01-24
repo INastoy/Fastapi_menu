@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 
 class BaseSchema(BaseModel):
@@ -16,15 +16,33 @@ class MenuSchema(BaseSchema):
     submenus_count: int = 0
     dishes_count: int = 0
 
+    @validator("id")
+    def validate_uuid(cls, value):
+        if value:
+            return str(value)
+        return value
+
 
 class SubmenuSchema(BaseSchema):
     id: uuid.UUID
     dishes_count: int = 0
 
+    @validator("id")
+    def validate_uuid(cls, value):
+        if value:
+            return str(value)
+        return value
+
 
 class DishSchema(BaseSchema):
     id: uuid.UUID
     price: str
+
+    @validator("id")
+    def validate_uuid(cls, value):
+        if value:
+            return str(value)
+        return value
 
 
 class DishBaseSchema(BaseSchema):
