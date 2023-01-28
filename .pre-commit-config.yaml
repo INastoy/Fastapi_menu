@@ -3,16 +3,17 @@ repos:
     rev: v3.2.0
     hooks:
     -   id: check-yaml
-    -   id: end-of-file-fixer
     -   id: trailing-whitespace
     -   id: check-case-conflict
     -   id: double-quote-string-fixer
+    -   id: end-of-file-fixer
+        exclude: "requirements.txt"
 
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
     -   id: flake8
-        exclude: __init__.py
+        exclude: "__init__.py"
         args: ["--ignore=E501,F821", "--max-line-length=120"]
 
 -   repo: https://github.com/pre-commit/mirrors-autopep8
