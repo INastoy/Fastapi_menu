@@ -8,16 +8,16 @@ services:
       dockerfile: Dockerfile
     environment:
       DATABASE_URL: "${PROD_DATABASE_URL}"
-#      CONFIG_FILE: "config.yaml"
+      CACHE_URL: "${PROD_CACHE_URL}"
     entrypoint: sh -c "uvicorn main:app --host 0.0.0.0 --port 8000"
-#    volumes:
-#      - .:/app
     networks:
       - ylab_network
     ports:
       - "8000:8000"
     depends_on:
       postgres_ylab:
+        condition: service_healthy
+      redis_ylab:
         condition: service_healthy
 
   postgres_ylab:
@@ -35,11 +35,33 @@ services:
     networks:
       - ylab_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "postgres", "-d", "ylab"]
+      test: ["CMD-SHELL", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "ylab"]
       interval: 10s
       timeout: 30s
       retries: 5
       start_period: 80s
+
+  redis_ylab:
+    image: redis:latest
+    container_name: redis_ylab
+    restart: unless-stopped
+    volumes:
+      - ./redis/data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - ylab_network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 80s
+
 
 networks:
   ylab_network:

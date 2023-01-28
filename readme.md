@@ -1,6 +1,6 @@
 Пример бэкенда для сайта ресторана, написанного на FastAPI
 -
-Стек технологий: 
+Стек технологий:
 `FastAPI` `PostgreSQL` `SQLAlchemy` `Pytest`
 
 *Запуск в docker контейнере:*
@@ -10,7 +10,7 @@
 2. Запуск проекта в докер-контейнере:
 
 ```shell
-docker-compose -f docker-compose.yml up -d
+docker-compose up -d
 ```
 3. Запуск докер-контейнера с тестами:
 
@@ -45,6 +45,12 @@ pip install -r requirements.txt
 >TEST_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@test_postgres_ylab:5432/test_ylab"\
 >PROD_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_ylab:5432/ylab"\
 >DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/menu_test"
+>
+>TEST_CACHE_URL = "redis://test_redis_ylab:6379/0"\
+>PROD_CACHE_URL = "redis://redis_ylab:6379/0"\
+>CACHE_URL = "redis://localhost:6379/0"
+>
+>JWT_SECRET = "OLzrLAYYMA26jkMkAp737lLJIDUjJUBHA3PVbtgwTdw"
 
 6. Запуск проекта:
 
@@ -53,5 +59,3 @@ uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 7. Документация к проекту будет доступна по адресу:
 <http://127.0.0.1:8000/docs>
-
-
