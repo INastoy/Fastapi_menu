@@ -6,7 +6,7 @@ from core.redis import cache_client
 from core.settings import CACHE_EXPIRATION
 
 
-def _get_uuid(*args, **kwargs):
+def _get_uuid(*args, **kwargs) -> Generator:
     params = list(args)
     params.extend(kwargs.values())
     for i in params:
@@ -14,19 +14,18 @@ def _get_uuid(*args, **kwargs):
             yield str(i)
 
 
-def _delete_cache(items_uuid: Generator):
-    cache_client.delete('MenuCRUD.get_all',
-                        'SubmenuCRUD.get_all', 'DishCRUD.get_all')
+async def _delete_cache(items_uuid: Generator):
+    await cache_client.delete('MenuCRUD.get_all', 'SubmenuCRUD.get_all', 'DishCRUD.get_all')
     for item_uuid in items_uuid:
-        cache_client.delete(item_uuid)
+        await cache_client.delete(item_uuid)
 
 
 def cache(function: Callable):
-    def wrapper(self, *args, **kwargs):
+    async def wrapper(self, *args, **kwargs):
         items_uuid = _get_uuid(*args, **kwargs)
         if function.__name__ in ('create', 'update', 'delete'):
-            db_data = function(self, *args, **kwargs)
-            _delete_cache(items_uuid)
+            db_data = await function(self, *args, **kwargs)
+            await _delete_cache(items_uuid)
 
             return db_data
 
@@ -34,13 +33,13 @@ def cache(function: Callable):
                      if function.__name__ == 'get_all'
                      else next(items_uuid))
 
-        cached_data = cache_client.get(redis_key)
+        cached_data = await cache_client.get(redis_key)
         if not cached_data:
-            db_data = function(self, *args, **kwargs)
-            cache_client.set(redis_key, pickle.dumps(
-                db_data), ex=CACHE_EXPIRATION)
+            db_data = await function(self, *args, **kwargs)
+            await cache_client.set(redis_key, pickle.dumps(db_data), ex=CACHE_EXPIRATION)
 
             return db_data
+        print('Cached')
         return pickle.loads(cached_data)
 
     return wrapper

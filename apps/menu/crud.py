@@ -1,8 +1,10 @@
-from typing import List
+from typing import List, Type
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, select, insert, update
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from core.cache import cache
@@ -13,12 +15,13 @@ from .schemas import BaseSchema
 
 class MenuCRUD:
     def __init__(self, session: Session = Depends(get_session)):
-        self.session = session
+        self.session: AsyncSession = session
         self.model = Menu
 
-    def get_all(self) -> List[Menu]:
-        return (
-            self.session.query(
+    @cache
+    async def get_all(self) -> List[Menu]:
+        query = await (self.session.execute(
+            select(
                 Menu.id,
                 Menu.title,
                 Menu.description,
@@ -28,13 +31,13 @@ class MenuCRUD:
             .outerjoin(Submenu, Menu.id == Submenu.menu_id)
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)
             .group_by(Menu.id)
-            .all()
-        )
+        ))
+        return query.all()
 
     @cache
-    def get_by_id(self, menu_id: UUID) -> Menu:
-        item = (
-            self.session.query(
+    async def get_by_id(self, menu_id: UUID) -> Menu:
+        query = (await self.session.execute(
+            select(
                 Menu.id,
                 Menu.title,
                 Menu.description,
@@ -45,38 +48,39 @@ class MenuCRUD:
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)
             .filter(Menu.id == menu_id)
             .group_by(Menu.id)
-            .first()
-        )
+        ))
+
+        item: Menu = query.first()
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='menu not found')
         return item
 
     @cache
-    def create(self, item_data: BaseSchema) -> Menu:
-        item = self.model(**item_data.dict())
-        self.session.add(item)
-        self.session.commit()
+    async def create(self, item_data: BaseSchema) -> Menu:
+        cursor_result: CursorResult = await self.session.execute(insert(Menu).values(**item_data.dict()))
+        await self.session.commit()
+        item = self.model(**cursor_result.context.compiled_parameters[0])
         return item
 
     @cache
-    def update(self, item_id: UUID, item_data: BaseSchema) -> Menu:
-        item = self._get(item_id)
-        for field, value in item_data:
-            setattr(item, field, value)
-        self.session.commit()
+    async def update(self, item_id: UUID, item_data: BaseSchema) -> Menu:
+        item = await self._get(item_id)
+        await self.session.execute(update(self.model).filter_by(id=item_id).values(**item_data.dict()))
+        await self.session.commit()
+        await self.session.refresh(item)
+
         return item
 
     @cache
-    def delete(self, item_id: UUID) -> Menu:
-        item = self._get(item_id)
-        self.session.delete(item)
-        self.session.commit()
+    async def delete(self, item_id: UUID) -> Menu:
+        item = await self._get(item_id)
+        await self.session.delete(item)
+        await self.session.commit()
         return item
 
-    def _get(self, item_id: UUID) -> Menu:
-        item = self.session.query(self.model).filter(
-            self.model.id == item_id).first()
+    async def _get(self, item_id: UUID) -> Menu:
+        item = await self.session.get(self.model, item_id)
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='menu not found')
@@ -85,124 +89,129 @@ class MenuCRUD:
 
 class SubmenuCRUD:
     def __init__(self, session: Session = Depends(get_session)):
-        self.session = session
-        self.model = Submenu
+        self.session: AsyncSession = session
+        self.model: Type[Submenu] = Submenu
 
     @cache
-    def get_all(self, menu_id: UUID) -> List[Submenu]:
-        return (
-            self.session.query(
-                Submenu.id,
-                Submenu.title,
-                Submenu.description,
-                func.count(distinct(Dish.id)).label('dishes_count'),
-            )
-            .outerjoin(Dish, Submenu.id == Dish.submenu_id)
-            .filter(Submenu.menu_id == menu_id)
-            .group_by(Submenu.id)
-            .all()
-        )
+    async def get_all(self, menu_id: UUID) -> List[Submenu]:
+        query = (
+            await self.session.execute(
+                select(
+                    Submenu.id,
+                    Submenu.title,
+                    Submenu.description,
+                    func.count(distinct(Dish.id)).label('dishes_count'),
+                )
+                .outerjoin(Dish, Submenu.id == Dish.submenu_id)
+                .filter(Submenu.menu_id == menu_id)
+                .group_by(Submenu.id)
+            ))
+        return query.all()
 
     @cache
-    def get_by_id(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
-        item = (
-            self.session.query(
-                Submenu.id,
-                Submenu.title,
-                Submenu.description,
-                func.count(distinct(Dish.id)).label('dishes_count'),
-            )
-            .outerjoin(Dish, Submenu.id == Dish.submenu_id)
-            .filter(Submenu.menu_id == menu_id)
-            .filter(Submenu.id == submenu_id)
-            .group_by(Submenu.id)
-            .first()
-        )
+    async def get_by_id(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
+        query = (
+            await self.session.execute(
+                select(
+                    Submenu.id,
+                    Submenu.title,
+                    Submenu.description,
+                    func.count(distinct(Dish.id)).label('dishes_count'),
+                )
+                .outerjoin(Dish, Submenu.id == Dish.submenu_id)
+                .filter(Submenu.menu_id == menu_id)
+                .filter(Submenu.id == submenu_id)
+                .group_by(Submenu.id)
+            ))
+        item = query.first()
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='submenu not found')
         return item
 
     @cache
-    def create(self, item_data: BaseSchema, menu_id: UUID) -> Submenu:
-        item = self.model(**item_data.dict(), menu_id=menu_id)
-        self.session.add(item)
-        self.session.commit()
+    async def create(self, item_data: BaseSchema, menu_id: UUID) -> Submenu:
+        cursor_result = await self.session.execute(insert(self.model).values(**item_data.dict(), menu_id=menu_id))
+        await self.session.commit()
+        item = self.model(**cursor_result.context.compiled_parameters[0])
         return item
 
     @cache
-    def delete(self, item_id: UUID, menu_id: UUID):
-        item = self._get(item_id, menu_id)
-        self.session.delete(item)
-        self.session.commit()
+    async def delete(self, item_id: UUID, menu_id: UUID):
+        item = await self._get(item_id, menu_id)
+        await self.session.delete(item)
+        await self.session.commit()
         return item
 
     @cache
-    def update(self, item_id: UUID, item_data: BaseSchema, menu_id: UUID) -> Submenu:
-        item = self._get(item_id, menu_id)
-        for field, value in item_data:
-            setattr(item, field, value)
-        self.session.commit()
+    async def update(self, item_id: UUID, item_data: BaseSchema, menu_id: UUID) -> Submenu:
+        item = await self._get(item_id, menu_id)
+        await self.session.execute(update(self.model).filter_by(id=item_id, menu_id=menu_id).values(**item_data.dict()))
+        await self.session.commit()
+        await self.session.refresh(item)
         return item
 
-    def _get(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
-        menu = (
-            self.session.query(Submenu)
+    async def _get(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
+        item = (
+            await self.session.scalar(
+                select(Submenu)
                 .filter(Submenu.id == submenu_id)
                 .filter(Menu.id == menu_id)
                 .join(Menu, Menu.id == menu_id)
-                .first()
-        )
-        if not menu:
+            ))
+        if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='submenu not found')
-        return menu
+        return item
 
 
 class DishCRUD:
     def __init__(self, session: Session = Depends(get_session)):
-        self.session = session
-        self.model = Dish
+        self.session: AsyncSession = session
+        self.model: Type[Dish] = Dish
 
     @cache
-    def get_all(self, submenu_id: UUID) -> List[Dish]:
-        return self.session.query(Dish).filter(Dish.submenu_id == submenu_id).all()
+    async def get_all(self, submenu_id: UUID) -> List[Dish]:
+        items = await self.session.scalars(select(Dish).filter(Dish.submenu_id == submenu_id))
+        return items.all()
 
     @cache
-    def get_by_id(self, dish_id: UUID, submenu_id: UUID) -> Dish:
-        return self._get(dish_id, submenu_id)
+    async def get_by_id(self, dish_id: UUID, submenu_id: UUID) -> Dish:
+        return await self._get(dish_id, submenu_id)
 
     @cache
-    def create(self, item_data: BaseSchema, submenu_id: UUID, *args, **kwargs) -> Dish:
-        item = self.model(**item_data.dict(), submenu_id=submenu_id)
-        self.session.add(item)
-        self.session.commit()
+    async def create(self, item_data: BaseSchema, submenu_id: UUID, *args, **kwargs) -> Dish:
+        cursor_result = await self.session.execute(insert(self.model).values(**item_data.dict(), submenu_id=submenu_id))
+        await self.session.commit()
+        item = self.model(**cursor_result.context.compiled_parameters[0])
         return item
 
     @cache
-    def delete(self, item_id: UUID, submenu_id: UUID, *args, **kwargs):
-        item = self._get(item_id, submenu_id)
-        self.session.delete(item)
-        self.session.commit()
+    async def delete(self, item_id: UUID, submenu_id: UUID, *args, **kwargs):
+        item = await self._get(item_id, submenu_id)
+        await self.session.delete(item)
+        await self.session.commit()
         return item
 
     @cache
-    def update(self, item_id: UUID, item_data: BaseSchema, submenu_id: UUID) -> Dish:
-        item = self._get(item_id, submenu_id)
-        for field, value in item_data:
-            setattr(item, field, value)
-        self.session.commit()
+    async def update(self, item_id: UUID, item_data: BaseSchema, submenu_id: UUID) -> Dish:
+        item = await self._get(item_id, submenu_id)
+        await self.session.execute(
+            update(self.model).filter_by(id=item_id, submenu_id=submenu_id).values(**item_data.dict()))
+        await self.session.commit()
+        await self.session.refresh(item)
         return item
 
-    def _get(self, dish_id: UUID, submenu_id: UUID) -> Dish:
+    async def _get(self, dish_id: UUID, submenu_id: UUID) -> Dish:
         dish: Dish = (
-            self.session.query(Dish)
+            await self.session.scalar(
+                select(Dish)
                 .filter(Dish.id == dish_id)
                 .filter(Submenu.id == submenu_id)
                 .join(Submenu, Submenu.id == submenu_id)
-                .first()
-        )
+            ))
         if not dish:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='dish not found')
+
         return dish

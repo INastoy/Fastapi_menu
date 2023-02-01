@@ -1,40 +1,62 @@
+import asyncio
+from typing import Generator
+
 import pytest
-from starlette.testclient import TestClient
+import pytest_asyncio
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.menu.crud import MenuCRUD, SubmenuCRUD, DishCRUD
 from core.database import Session
 from main import app
 
 
-@pytest.fixture(scope='module')
-def client():
+@pytest.fixture(scope='session')
+def event_loop() -> Generator:
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope='module')
+async def client():
     # app.dependency_overrides[get_session] = override_get_session
-    client = TestClient(app)
-    yield client
+    async with AsyncClient(app=app, base_url='http://test') as async_client:
+        yield async_client
+    # client = TestClient(app)
+    # yield client
 
 
-@pytest.fixture(scope='module')
-def session():
-    session = Session()
-    try:
+@pytest_asyncio.fixture(scope='module')
+async def session() -> AsyncSession:
+    async_session = Session()
+    async with async_session as session:
         yield session
-    finally:
-        session.close()
+# def session():
+#     session = Session()
+#     try:
+#         yield session
+#     finally:
+#         session.close()
 
 
-@pytest.fixture(scope='module')
-def menu(session):
+@pytest_asyncio.fixture(scope='module')
+async def menu(session):
     menu = MenuCRUD(session=session)
     yield menu
 
 
-@pytest.fixture(scope='module')
-def submenu(session):
+@pytest_asyncio.fixture(scope='module')
+async def submenu(session):
     submenu = SubmenuCRUD(session=session)
     yield submenu
 
 
-@pytest.fixture(scope='module')
-def dish(session):
+@pytest_asyncio.fixture(scope='module')
+async def dish(session):
     dish = DishCRUD(session=session)
     yield dish
+
+# async def init_models():
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)

@@ -1,4 +1,4 @@
-import redis
+import redis.asyncio as redis  # type: ignore
 
 from core.settings import CACHE_URL
 
