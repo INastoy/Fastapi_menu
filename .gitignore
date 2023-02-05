@@ -5,3 +5,4 @@ venv
 .mypy_cache
 redis
 /redis/data/dump.rdb
+rabbitmq/

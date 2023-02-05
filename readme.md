@@ -1,7 +1,22 @@
 Пример бэкенда для сайта ресторана, написанного на FastAPI
 -
-Стек технологий:
-`FastAPI` `PostgreSQL` `SQLAlchemy` `Pytest` `Docker` `Alembic`
+###Стек технологий:
+`FastAPI` `PostgreSQL` `SQLAlchemy` `Pytest` `Docker` `Alembic` `Redis` `Celery` `RabbitMQ`
+
+<details>
+
+ <summary>Реализованный функционал</summary>
+
+
+1. Регистрация и авторизация пользователей с использованием JWT токенов
+2. Эндпоинты для создания/изменения/просмотра/удаления меню, подменю и блюд
+3. Кэширование данных в Redis при Get запросе и удаление кешированных данных при Post/Patch/Delete запросах
+4. Выполнение длительных операций вынесено в отдельный Celery task. Доступ к результатам производится по id таска.
+5. Тесты для CRUD операций
+6. Подробная документация проекта
+7. Весь проект завернут в докер-контейнеры и поднимается одной командой
+
+</details>
 
 *Запуск в docker контейнере:*
 -
@@ -50,12 +65,15 @@ pip install -r requirements.txt
 >PROD_CACHE_URL = "redis://redis_ylab:6379/0"\
 >CACHE_URL = "redis://localhost:6379/0"
 >
+> PROD_CELERY_BROKER_URL = "pyamqp://guest:guest@rabbitmq_ylab//"\
+>CELERY_BROKER_URL = "pyamqp://guest:guest@localhost//"
+>
 >JWT_SECRET = "OLzrLAYYMA26jkMkAp737lLJIDUjJUBHA3PVbtgwTdw"
 
 6. Запуск проекта:
 
 ```shell
-uvicorn main:app --host 127.0.0.1 --port 8000
+uvicorn main:fastapi_app --host 127.0.0.1 --port 8000
 ```
 7. Документация к проекту будет доступна по адресу:
 <http://127.0.0.1:8000/docs>

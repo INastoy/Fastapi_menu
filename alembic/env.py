@@ -1,15 +1,10 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
-from alembic import context
-
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from alembic import context
 from apps.auth.models import User
 from apps.menu import models
 from core.settings import DATABASE_URL
@@ -26,7 +21,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-alembic_models = (User, )
+alembic_models = (User,)
 target_metadata = models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -74,7 +69,7 @@ async def run_migrations_online() -> None:
             context.config.get_section(context.config.config_ini_section),
             prefix='sqlalchemy.',
             poolclass=pool.NullPool,
-            future=True
+            future=True,
         )
     )
 

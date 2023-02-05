@@ -1,16 +1,20 @@
-from typing import List, Type
+import json
+import pickle
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
-from sqlalchemy import func, distinct, select, insert, update
+from sqlalchemy import distinct, func, insert, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 from starlette import status
 
 from core.cache import cache
 from core.database import Session, get_session
-from .models import Menu, Submenu, Dish
+
+from .models import Dish, Menu, Submenu
 from .schemas import BaseSchema
+from .tasks import gen_excel_task
 
 
 class MenuCRUD:
@@ -19,8 +23,8 @@ class MenuCRUD:
         self.model = Menu
 
     @cache
-    async def get_all(self) -> List[Menu]:
-        query = await (self.session.execute(
+    async def get_all(self) -> list[Menu]:
+        query = await self.session.execute(
             select(
                 Menu.id,
                 Menu.title,
@@ -31,12 +35,12 @@ class MenuCRUD:
             .outerjoin(Submenu, Menu.id == Submenu.menu_id)
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)
             .group_by(Menu.id)
-        ))
+        )
         return query.all()
 
     @cache
     async def get_by_id(self, menu_id: UUID) -> Menu:
-        query = (await self.session.execute(
+        query = await self.session.execute(
             select(
                 Menu.id,
                 Menu.title,
@@ -48,7 +52,7 @@ class MenuCRUD:
             .outerjoin(Dish, Submenu.id == Dish.submenu_id)
             .filter(Menu.id == menu_id)
             .group_by(Menu.id)
-        ))
+        )
 
         item: Menu = query.first()
         if not item:
@@ -86,43 +90,84 @@ class MenuCRUD:
                                 detail='menu not found')
         return item
 
+    @cache
+    async def create_example(self, file_path: str):
+        pass
+        with open(file_path, encoding='utf8') as file:
+            example_data = json.load(file)
+        for menu in example_data.values():
+            new_menu = await self.session.execute(
+                insert(Menu).values(title=menu.get('title'),
+                                    description=menu.get('description'))
+            )
+            menu_id = new_menu.inserted_primary_key[0].hex
+            for submenu in menu.get('submenus').values():
+                new_submenu = await self.session.execute(
+                    insert(Submenu).values(
+                        title=submenu.get('title'),
+                        description=submenu.get('description'),
+                        menu_id=menu_id,
+                    )
+                )
+                submenu_id = new_submenu.inserted_primary_key[0].hex
+                for dish in submenu.get('dishes').values():
+                    await self.session.execute(
+                        insert(Dish).values(
+                            title=dish.get('title'),
+                            description=dish.get('description'),
+                            price=dish.get('price'),
+                            submenu_id=submenu_id,
+                        )
+                    )
+        await self.session.commit()
+        return {'message': 'database filled'}
+
+    async def gen_excel(self):
+        query = await self.session.scalars(select(Menu).options(joinedload('submenus'), joinedload('submenus.dishes')))
+        full_menus_data = query.unique().all()
+        task = gen_excel_task.apply_async(
+            (pickle.dumps(full_menus_data),), serializer='pickle')
+
+        return {'file_id': task.id}
+
+    async def get_excel(self):
+        return 'http://127.0.0.1:8000/api/v1/menu/get_menus'
+
 
 class SubmenuCRUD:
     def __init__(self, session: Session = Depends(get_session)):
         self.session: AsyncSession = session
-        self.model: Type[Submenu] = Submenu
+        self.model: type[Submenu] = Submenu
 
     @cache
-    async def get_all(self, menu_id: UUID) -> List[Submenu]:
-        query = (
-            await self.session.execute(
-                select(
-                    Submenu.id,
-                    Submenu.title,
-                    Submenu.description,
-                    func.count(distinct(Dish.id)).label('dishes_count'),
-                )
-                .outerjoin(Dish, Submenu.id == Dish.submenu_id)
-                .filter(Submenu.menu_id == menu_id)
-                .group_by(Submenu.id)
-            ))
+    async def get_all(self, menu_id: UUID) -> list[Submenu]:
+        query = await self.session.execute(
+            select(
+                Submenu.id,
+                Submenu.title,
+                Submenu.description,
+                func.count(distinct(Dish.id)).label('dishes_count'),
+            )
+            .outerjoin(Dish, Submenu.id == Dish.submenu_id)
+            .filter(Submenu.menu_id == menu_id)
+            .group_by(Submenu.id)
+        )
         return query.all()
 
     @cache
     async def get_by_id(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
-        query = (
-            await self.session.execute(
-                select(
-                    Submenu.id,
-                    Submenu.title,
-                    Submenu.description,
-                    func.count(distinct(Dish.id)).label('dishes_count'),
-                )
-                .outerjoin(Dish, Submenu.id == Dish.submenu_id)
-                .filter(Submenu.menu_id == menu_id)
-                .filter(Submenu.id == submenu_id)
-                .group_by(Submenu.id)
-            ))
+        query = await self.session.execute(
+            select(
+                Submenu.id,
+                Submenu.title,
+                Submenu.description,
+                func.count(distinct(Dish.id)).label('dishes_count'),
+            )
+            .outerjoin(Dish, Submenu.id == Dish.submenu_id)
+            .filter(Submenu.menu_id == menu_id)
+            .filter(Submenu.id == submenu_id)
+            .group_by(Submenu.id)
+        )
         item = query.first()
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
@@ -152,13 +197,10 @@ class SubmenuCRUD:
         return item
 
     async def _get(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
-        item = (
-            await self.session.scalar(
-                select(Submenu)
-                .filter(Submenu.id == submenu_id)
-                .filter(Menu.id == menu_id)
-                .join(Menu, Menu.id == menu_id)
-            ))
+        item = await self.session.scalar(
+            select(Submenu).filter(Submenu.id == submenu_id).filter(
+                Menu.id == menu_id).join(Menu, Menu.id == menu_id)
+        )
         if not item:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='submenu not found')
@@ -168,10 +210,10 @@ class SubmenuCRUD:
 class DishCRUD:
     def __init__(self, session: Session = Depends(get_session)):
         self.session: AsyncSession = session
-        self.model: Type[Dish] = Dish
+        self.model: type[Dish] = Dish
 
     @cache
-    async def get_all(self, submenu_id: UUID) -> List[Dish]:
+    async def get_all(self, submenu_id: UUID) -> list[Dish]:
         items = await self.session.scalars(select(Dish).filter(Dish.submenu_id == submenu_id))
         return items.all()
 
@@ -197,19 +239,20 @@ class DishCRUD:
     async def update(self, item_id: UUID, item_data: BaseSchema, submenu_id: UUID) -> Dish:
         item = await self._get(item_id, submenu_id)
         await self.session.execute(
-            update(self.model).filter_by(id=item_id, submenu_id=submenu_id).values(**item_data.dict()))
+            update(self.model).filter_by(
+                id=item_id, submenu_id=submenu_id).values(**item_data.dict())
+        )
         await self.session.commit()
         await self.session.refresh(item)
         return item
 
     async def _get(self, dish_id: UUID, submenu_id: UUID) -> Dish:
-        dish: Dish = (
-            await self.session.scalar(
-                select(Dish)
-                .filter(Dish.id == dish_id)
-                .filter(Submenu.id == submenu_id)
-                .join(Submenu, Submenu.id == submenu_id)
-            ))
+        dish: Dish = await self.session.scalar(
+            select(Dish)
+            .filter(Dish.id == dish_id)
+            .filter(Submenu.id == submenu_id)
+            .join(Submenu, Submenu.id == submenu_id)
+        )
         if not dish:
             raise HTTPException(status.HTTP_404_NOT_FOUND,
                                 detail='dish not found')

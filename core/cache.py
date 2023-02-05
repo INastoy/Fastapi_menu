@@ -1,5 +1,5 @@
 import pickle
-from typing import Generator, Callable
+from typing import Callable, Generator
 from uuid import UUID
 
 from core.redis import cache_client
@@ -23,15 +23,14 @@ async def _delete_cache(items_uuid: Generator):
 def cache(function: Callable):
     async def wrapper(self, *args, **kwargs):
         items_uuid = _get_uuid(*args, **kwargs)
-        if function.__name__ in ('create', 'update', 'delete'):
+        if function.__name__ in ('create', 'create_example', 'update', 'delete'):
             db_data = await function(self, *args, **kwargs)
             await _delete_cache(items_uuid)
 
             return db_data
 
-        redis_key = (function.__qualname__
-                     if function.__name__ == 'get_all'
-                     else next(items_uuid))
+        redis_key = function.__qualname__ if function.__name__ == 'get_all' else next(
+            items_uuid)
 
         cached_data = await cache_client.get(redis_key)
         if not cached_data:

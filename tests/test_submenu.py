@@ -2,7 +2,7 @@ import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 from httpx import AsyncClient
-from sqlalchemy import insert, select, func
+from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.menu.crud import SubmenuCRUD
@@ -19,28 +19,32 @@ class TestSubmenu:
         await self.session.execute(insert(Menu).values(title='submenu_test_title1', description='submenu_test_desc1'))
 
         self.menu1 = await self.session.scalar(
-            select(Menu).filter_by(title='submenu_test_title1', description='submenu_test_desc1'))
+            select(Menu).filter_by(title='submenu_test_title1',
+                                   description='submenu_test_desc1')
+        )
 
         await self.session.execute(
-            insert(Submenu)
-            .values(title='test_title1', description='test_desc1', menu_id=self.menu1.id)
+            insert(Submenu).values(title='test_title1',
+                                   description='test_desc1', menu_id=self.menu1.id)
         )
         await self.session.commit()
         await self.session.refresh(self.menu1)
 
         self.submenu1: Submenu = await self.session.scalar(
-            select(Submenu)
-            .filter_by(title='test_title1', description='test_desc1', menu_id=self.menu1.id)
+            select(Submenu).filter_by(title='test_title1',
+                                      description='test_desc1', menu_id=self.menu1.id)
         )
 
         self.data_for_create = dict(
-            title='created_title', description='created_desc', menu_id=str(self.menu1.id))
+            title='created_title',
+            description='created_desc',
+            menu_id=str(self.menu1.id),
+        )
         self.data_for_update = dict(
             title='updated_title', description='updated_desc')
         self.submenus_count = await self.session.scalar(
-            select(func.count())
-            .select_from(Submenu)
-            .filter_by(menu_id=self.menu1.id)
+            select(func.count()).select_from(
+                Submenu).filter_by(menu_id=self.menu1.id)
         )
 
         yield
@@ -68,12 +72,11 @@ class TestSubmenu:
         assert response.json() == submenu_from_db
 
     async def test_create_submenu_ok(self, client: AsyncClient, submenu: SubmenuCRUD):
-        response = await client.post(
-            f'/api/v1/menus/{self.menu1.id}/submenus/', json=self.data_for_create
-        )
+        response = await client.post(f'/api/v1/menus/{self.menu1.id}/submenus/', json=self.data_for_create)
         submenu_from_response = SubmenuSchema(**response.json())
         submenu_from_db = SubmenuSchema.from_orm(
-            await submenu.get_by_id(submenu_id=submenu_from_response.id, menu_id=self.menu1.id))
+            await submenu.get_by_id(submenu_id=submenu_from_response.id, menu_id=self.menu1.id)
+        )
 
         assert len(await submenu.get_all(self.menu1.id)) == self.submenus_count + 1
         assert response.status_code == 201
@@ -85,7 +88,8 @@ class TestSubmenu:
             json=self.data_for_update,
         )
         submenu_from_db = SubmenuSchema.from_orm(
-            await submenu.get_by_id(submenu_id=self.submenu1.id, menu_id=self.menu1.id))
+            await submenu.get_by_id(submenu_id=self.submenu1.id, menu_id=self.menu1.id)
+        )
 
         assert response.status_code == 200
         assert submenu_from_db.title == self.data_for_update.get('title')
@@ -94,9 +98,7 @@ class TestSubmenu:
         assert response.json() == submenu_from_db
 
     async def test_delete_submenu_ok(self, client: AsyncClient, submenu: SubmenuCRUD):
-        response = await client.delete(
-            f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}'
-        )
+        response = await client.delete(f'/api/v1/menus/{self.menu1.id}/submenus/{self.submenu1.id}')
         assert response.status_code == 200
         with pytest.raises(HTTPException) as ex:
             await submenu.get_by_id(submenu_id=self.submenu1.id, menu_id=self.menu1.id)

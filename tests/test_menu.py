@@ -4,10 +4,10 @@ import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 from httpx import AsyncClient
-from sqlalchemy import select, insert, func
+from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.menu.crud import MenuCRUD, SubmenuCRUD, DishCRUD
+from apps.menu.crud import DishCRUD, MenuCRUD, SubmenuCRUD
 from apps.menu.models import Menu
 from apps.menu.schemas import BaseSchema, MenuSchema
 
@@ -15,7 +15,6 @@ from apps.menu.schemas import BaseSchema, MenuSchema
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_class')
 class TestMenu:
-
     @pytest_asyncio.fixture
     async def setup_class(self, session: AsyncSession):
         self.session = session
@@ -66,9 +65,7 @@ class TestMenu:
         await session.commit()
 
     async def test_update_menu_ok(self, client: AsyncClient, menu: MenuCRUD):
-        response = await client.patch(
-            f'/api/v1/menus/{self.menu1.id}', json=self.data_for_update
-        )
+        response = await client.patch(f'/api/v1/menus/{self.menu1.id}', json=self.data_for_update)
         menu_from_db = MenuSchema.from_orm(await menu.get_by_id(self.menu1.id))
 
         assert response.status_code == 200
@@ -83,10 +80,7 @@ class TestMenu:
         assert ex.value.detail == 'menu not found'
 
     async def test_submenus_count_ok(self, menu: MenuCRUD, submenu: SubmenuCRUD):
-        new_menu = await menu.create(
-            BaseSchema(title='test_submenus_count',
-                       description='test_submenus_count')
-        )
+        new_menu = await menu.create(BaseSchema(title='test_submenus_count', description='test_submenus_count'))
         await submenu.create(
             BaseSchema(title='test_submenus_count1',
                        description='test_submenus_count'),
@@ -109,10 +103,7 @@ class TestMenu:
         await menu.delete(new_menu.id)
 
     async def test_dishes_count_ok(self, menu: MenuCRUD, submenu: SubmenuCRUD, dish: DishCRUD):
-        new_menu = await menu.create(
-            BaseSchema(title='test_dishes_count',
-                       description='test_dishes_count')
-        )
+        new_menu = await menu.create(BaseSchema(title='test_dishes_count', description='test_dishes_count'))
         new_submenu = await submenu.create(
             BaseSchema(title='test_dishes_count',
                        description='test_dishes_count'),
@@ -141,10 +132,7 @@ class TestMenu:
         await menu.delete(new_menu.id)
 
     async def test_cascade_delete_ok(self, menu: MenuCRUD, submenu: SubmenuCRUD, dish: DishCRUD):
-        new_menu = await menu.create(
-            BaseSchema(title='test_cascade_delete',
-                       description='test_cascade_delete')
-        )
+        new_menu = await menu.create(BaseSchema(title='test_cascade_delete', description='test_cascade_delete'))
         new_submenu = await submenu.create(
             BaseSchema(title='test_cascade_delete',
                        description='test_cascade_delete'),

@@ -140,3 +140,4 @@ cython_debug/
 menu app.postman_collection.json
 menu app.postman_environment.json
 .idea
+/rabbitmq/

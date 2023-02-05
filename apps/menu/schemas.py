@@ -9,6 +9,12 @@ class BaseSchema(BaseModel):
 
     class Config:
         orm_mode = True
+        # schema_extra = {
+        #     'example': {
+        #         'title': 'My menu',
+        #         'description': 'My menu description',
+        #     },
+        # }
 
 
 class MenuSchema(BaseSchema):

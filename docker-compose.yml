@@ -9,7 +9,11 @@ services:
     environment:
       DATABASE_URL: "${PROD_DATABASE_URL}"
       CACHE_URL: "${PROD_CACHE_URL}"
-    entrypoint: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+      CELERY_BROKER_URL: "${PROD_CELERY_BROKER_URL}"
+    entrypoint: sh -c "alembic upgrade head
+      && uvicorn main:fastapi_app --host 0.0.0.0 --port 8000"
+    volumes:
+      - shared-volume:/app
     networks:
       - ylab_network
     ports:
@@ -19,6 +23,9 @@ services:
         condition: service_healthy
       redis_ylab:
         condition: service_healthy
+      celery_worker_ylab:
+        condition: service_started
+
 
   postgres_ylab:
     container_name: postgres_ylab
@@ -64,9 +71,54 @@ services:
       retries: 5
       start_period: 80s
 
+  celery_worker_ylab:
+    container_name: celery_worker_ylab
+    build:
+      context: .
+    command: [ 'celery',  '-A', 'main', 'worker', '-l', 'info' ]
+    environment:
+      DATABASE_URL: "${PROD_DATABASE_URL}"
+      CACHE_URL: "${PROD_CACHE_URL}"
+      CELERY_BROKER_URL: "${PROD_CELERY_BROKER_URL}"
+    volumes:
+      - shared-volume:/app
+    networks:
+      - ylab_network
+    depends_on:
+      rabbitmq_ylab:
+        condition: service_healthy
+
+  rabbitmq_ylab:
+    image: rabbitmq:latest
+    container_name: rabbitmq_ylab
+    restart: always
+    hostname: rabbitmq_ylab
+    environment:
+      RABBITMQ_DEFAULT_USER: "guest"
+      RABBITMQ_DEFAULT_PASS: "guest"
+#      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+    expose:
+      - 5672
+      - 15692
+    ports:
+      - "5672:5672"
+      - "15692:15692"
+    networks:
+      - ylab_network
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 80s
+
+
 
 networks:
   ylab_network:
     name: ylab_network
 volumes:
   postgres_data:
+  shared-volume:
