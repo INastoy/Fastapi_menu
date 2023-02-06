@@ -1,7 +1,10 @@
+import os.path
 import pickle
 
 from celery import shared_task
 from openpyxl import Workbook
+
+from core.settings import GENERATED_FILES_DIR
 
 
 @shared_task(bind=True)
@@ -26,4 +29,7 @@ def gen_excel_task(self, data):
                         dish.price,
                     ]
                 )
-    workbook.save(f'{self.request.id}.xlsx')
+    if not os.path.exists(GENERATED_FILES_DIR):
+        os.mkdir(GENERATED_FILES_DIR)
+    file_path = os.path.join(GENERATED_FILES_DIR, self.request.id)
+    workbook.save(f'{file_path}.xlsx')

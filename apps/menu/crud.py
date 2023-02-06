@@ -1,4 +1,5 @@
 import json
+import os
 import pickle
 from uuid import UUID
 
@@ -8,9 +9,12 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette import status
+from starlette.background import BackgroundTask
+from starlette.responses import FileResponse
 
-from core.cache import cache
+from core.cache.cache import cache
 from core.database import Session, get_session
+from core.settings import GENERATED_FILES_DIR
 
 from .models import Dish, Menu, Submenu
 from .schemas import BaseSchema
@@ -122,7 +126,7 @@ class MenuCRUD:
         await self.session.commit()
         return {'message': 'database filled'}
 
-    async def gen_excel(self):
+    async def generate_excel(self):
         query = await self.session.scalars(select(Menu).options(joinedload('submenus'), joinedload('submenus.dishes')))
         full_menus_data = query.unique().all()
         task = gen_excel_task.apply_async(
@@ -130,8 +134,23 @@ class MenuCRUD:
 
         return {'file_id': task.id}
 
-    async def get_excel(self):
-        return 'http://127.0.0.1:8000/api/v1/menu/get_menus'
+    async def get_excel(self, file_id: UUID):
+        file_name = f'{file_id}.xlsx'
+        file_path = os.path.join(GENERATED_FILES_DIR, file_name)
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail='file not found')
+
+        return FileResponse(
+            path=file_path,
+            filename='Меню.xlsx',
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            background=BackgroundTask(self.cleanup, file_path)
+        )
+
+    @staticmethod
+    def cleanup(file_path):
+        os.remove(file_path)
 
 
 class SubmenuCRUD:

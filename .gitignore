@@ -6,3 +6,4 @@ venv
 redis
 /redis/data/dump.rdb
 rabbitmq/
+/generated_files/

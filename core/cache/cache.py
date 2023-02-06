@@ -2,7 +2,7 @@ import pickle
 from typing import Callable, Generator
 from uuid import UUID
 
-from core.redis import cache_client
+from core.cache.redis import cache_client
 from core.settings import CACHE_EXPIRATION
 
 
@@ -15,9 +15,11 @@ def _get_uuid(*args, **kwargs) -> Generator:
 
 
 async def _delete_cache(items_uuid: Generator):
-    await cache_client.delete('MenuCRUD.get_all', 'SubmenuCRUD.get_all', 'DishCRUD.get_all')
-    for item_uuid in items_uuid:
-        await cache_client.delete(item_uuid)
+    keys_to_delete = ['MenuCRUD.get_all',
+                      'SubmenuCRUD.get_all', 'DishCRUD.get_all']
+    uuids_to_delete = list(items_uuid)
+    keys_to_delete.extend(uuids_to_delete)
+    await cache_client.delete(*keys_to_delete)
 
 
 def cache(function: Callable):
@@ -38,7 +40,6 @@ def cache(function: Callable):
             await cache_client.set(redis_key, pickle.dumps(db_data), ex=CACHE_EXPIRATION)
 
             return db_data
-        print('Cached')
         return pickle.loads(cached_data)
 
     return wrapper

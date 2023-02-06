@@ -56,15 +56,15 @@ async def fill_menus(menu: MenuCRUD = Depends()):
 
 
 @router.post(
-    '/menus/gen_excel',
+    '/menus/generate_excel',
     status_code=HTTP_202_ACCEPTED,
     summary='Сгенерировать .xlsx файл с меню',
 )
-async def gen_excel(menu: MenuCRUD = Depends()):
+async def generate_excel(menu: MenuCRUD = Depends()):
     """Генерирует пример заполненного меню с подменю и блюдами.
     При вызове возвращает id, по которому можно получить файл через эндпоинт get_excel
     """
-    return await menu.gen_excel()
+    return await menu.generate_excel()
 
 
 @router.get(
@@ -73,7 +73,8 @@ async def gen_excel(menu: MenuCRUD = Depends()):
     status_code=HTTP_200_OK,
     summary='Скачать Меню.xlsx',
 )
-async def get_excel(file_id: uuid.UUID):
-    """Возвращает Excel файл с текущим меню, подменю и блюдами.
-    Для получения файла требуется получить file_id в энпоинте gen_excel"""
-    return FileResponse(path=f'{file_id}.xlsx', media_type='multipart/form-data', filename='Меню.xlsx')
+async def get_excel(file_id: uuid.UUID, menu: MenuCRUD = Depends()):
+    """Возвращает Excel файл с текущими меню, подменю и блюдами.
+    Для получения файла требуется получить file_id в энпоинте gen_excel.
+    После выполнения сгенерированный файл удаляется с сервера"""
+    return await menu.get_excel(file_id)

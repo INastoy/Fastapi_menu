@@ -141,3 +141,4 @@ menu app.postman_collection.json
 menu app.postman_environment.json
 .idea
 /rabbitmq/
+/generated_files/

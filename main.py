@@ -4,7 +4,7 @@ from fastapi import APIRouter, FastAPI
 
 from apps.auth.api import auth
 from apps.menu.api import dish, menu, submenu
-from core.openapi_tags import tags_metadata
+from core.openapi.openapi_tags import tags_metadata
 from core.settings import CELERY_BROKER_URL
 
 app = Celery('tasks', broker=CELERY_BROKER_URL, include=['apps.menu.tasks'])
@@ -12,10 +12,7 @@ app.conf.accept_content = ['application/json',
                            'application/x-python-serialize']
 
 
-fastapi_app = FastAPI(
-    title='Restaurant API',
-    openapi_tags=tags_metadata,
-)
+fastapi_app = FastAPI(title='Restaurant API', openapi_tags=tags_metadata)
 
 router = APIRouter(prefix='/api/v1')
 
