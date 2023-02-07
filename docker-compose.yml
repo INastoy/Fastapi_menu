@@ -10,6 +10,7 @@ services:
       DATABASE_URL: "${PROD_DATABASE_URL}"
       CACHE_URL: "${PROD_CACHE_URL}"
       CELERY_BROKER_URL: "${PROD_CELERY_BROKER_URL}"
+      JWT_SECRET: "${JWT_SECRET}"
     entrypoint: sh -c "alembic upgrade head
       && uvicorn main:fastapi_app --host 0.0.0.0 --port 8000"
     volumes:
@@ -30,8 +31,8 @@ services:
   postgres_ylab:
     container_name: postgres_ylab
     image: postgres:15.1-alpine
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data/
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_DB: "ylab"
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -94,8 +95,8 @@ services:
     restart: always
     hostname: rabbitmq_ylab
     environment:
-      RABBITMQ_DEFAULT_USER: "guest"
-      RABBITMQ_DEFAULT_PASS: "guest"
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS}"
 #      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
     volumes:
       - ./rabbitmq:/var/lib/rabbitmq

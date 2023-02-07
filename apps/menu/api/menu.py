@@ -6,6 +6,7 @@ from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_202_ACCEPTED
 
 from apps.menu.crud import MenuCRUD
 from apps.menu.schemas import BaseSchema, MenuSchema
+from core.openapi.responses import RESPONSE_303, RESPONSE_404
 
 router = APIRouter(prefix='/menus', tags=['menu'])
 
@@ -16,30 +17,33 @@ async def get_menus(menu: MenuCRUD = Depends()):
     return await menu.get_all()
 
 
-@router.get(
-    '/{menu_id}',
-    response_model=MenuSchema,
-    status_code=HTTP_200_OK,
-    summary='Получить меню',
-)
+@router.get('/{menu_id}', response_model=MenuSchema,
+            status_code=HTTP_200_OK,
+            summary='Получить меню',
+            responses=RESPONSE_404,
+            )
 async def get_menu(menu_id: uuid.UUID, menu: MenuCRUD = Depends()):
     """Возвращает меню с количеством всех подменю и блюд"""
     return await menu.get_by_id(menu_id)
 
 
-@router.post('/', response_model=MenuSchema, status_code=HTTP_201_CREATED, summary='Создать меню')
+@router.post('/', response_model=MenuSchema,
+             status_code=HTTP_201_CREATED,
+             summary='Создать меню',
+             responses=RESPONSE_303
+             )
 async def create_menu(menu_data: BaseSchema, menu: MenuCRUD = Depends()):
     """Создает новое меню"""
     return await menu.create(menu_data)
 
 
-@router.delete('/{menu_id}', status_code=HTTP_200_OK, summary='Удалить меню')
+@router.delete('/{menu_id}', status_code=HTTP_200_OK, summary='Удалить меню', responses=RESPONSE_404)
 async def delete_menu(menu_id: uuid.UUID, menu: MenuCRUD = Depends()):
     """Удаляет указанное меню"""
     return await menu.delete(menu_id)
 
 
-@router.patch('/{menu_id}', response_model=MenuSchema, summary='Обновить меню')
+@router.patch('/{menu_id}', response_model=MenuSchema, summary='Обновить меню', responses=RESPONSE_404)
 async def update_menu(menu_id: uuid.UUID, menu_data: BaseSchema, menu: MenuCRUD = Depends()):
     """Обновляет указанное меню"""
     return await menu.update(menu_id, menu_data)
@@ -72,6 +76,7 @@ async def generate_excel(menu: MenuCRUD = Depends()):
     response_class=FileResponse,
     status_code=HTTP_200_OK,
     summary='Скачать Меню.xlsx',
+    responses=RESPONSE_404
 )
 async def get_excel(file_id: uuid.UUID, menu: MenuCRUD = Depends()):
     """Возвращает Excel файл с текущими меню, подменю и блюдами.

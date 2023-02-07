@@ -1,10 +1,10 @@
 import uuid
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, EmailStr, Field, validator
 
 
 class BaseUserSchema(BaseModel):
-    email: str
+    email: EmailStr
     username: str
 
     class Config:
@@ -12,7 +12,20 @@ class BaseUserSchema(BaseModel):
 
 
 class UserCreateSchema(BaseUserSchema):
-    password: str
+    password: str = Field(min_length=6, max_length=30)
+
+    class Config:
+        schema_extra = {
+            'example': {
+                'email': 'example@example.com',
+                'username': 'username',
+                'password': 'password'
+            }
+        }
+
+
+class UserAuthSchema(BaseUserSchema):
+    password_hash: str
 
 
 class UserSchema(BaseUserSchema):

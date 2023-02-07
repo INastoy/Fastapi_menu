@@ -5,6 +5,7 @@ from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 
 from apps.menu.crud import DishCRUD
 from apps.menu.schemas import DishBaseSchema, DishSchema
+from core.openapi.responses import RESPONSE_303, RESPONSE_404
 
 router = APIRouter(
     prefix='/menus/{menu_id}/submenus/{submenu_id}/dishes', tags=['dish'])
@@ -26,6 +27,7 @@ async def get_dishes(submenu_id: uuid.UUID, dish: DishCRUD = Depends()):
     response_model=DishSchema,
     status_code=HTTP_200_OK,
     summary='Получить блюдо',
+    responses=RESPONSE_404,
 )
 async def get_dish(submenu_id: uuid.UUID, dish_id: uuid.UUID, dish: DishCRUD = Depends()):
     """Возвращает указанное блюдо"""
@@ -37,6 +39,7 @@ async def get_dish(submenu_id: uuid.UUID, dish_id: uuid.UUID, dish: DishCRUD = D
     response_model=DishSchema,
     status_code=HTTP_201_CREATED,
     summary='Создать блюдо',
+    responses=RESPONSE_303,
 )
 async def create_dish(
     submenu_id: uuid.UUID,
@@ -48,7 +51,7 @@ async def create_dish(
     return await dish.create(dish_data, submenu_id, menu_id)
 
 
-@router.delete('/{dish_id}', status_code=HTTP_200_OK, summary='Удалить блюдо')
+@router.delete('/{dish_id}', status_code=HTTP_200_OK, summary='Удалить блюдо', responses=RESPONSE_404)
 async def delete_dish(
     submenu_id: uuid.UUID,
     dish_id: uuid.UUID,
@@ -59,7 +62,7 @@ async def delete_dish(
     return await dish.delete(dish_id, submenu_id, menu_id)
 
 
-@router.patch('/{dish_id}', response_model=DishSchema, summary='Обновить блюдо')
+@router.patch('/{dish_id}', response_model=DishSchema, summary='Обновить блюдо', responses=RESPONSE_404)
 async def update_dish(
     submenu_id: uuid.UUID,
     dish_id: uuid.UUID,
