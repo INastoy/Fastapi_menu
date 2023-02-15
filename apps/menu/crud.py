@@ -12,9 +12,8 @@ from starlette import status
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse
 
-from core.cache.cache import cache
 from core.database import Session, get_session
-from core.settings import GENERATED_FILES_DIR
+from core.settings import GENERATED_FILES_DIRNAME
 
 from .models import Dish, Menu, Submenu
 from .schemas import BaseSchema
@@ -24,9 +23,9 @@ from .tasks import gen_excel_task
 class MenuCRUD:
     def __init__(self, session: Session = Depends(get_session)):
         self.session: AsyncSession = session
-        self.model = Menu
+        self.model: type[Menu] = Menu
 
-    @cache
+    # @cache
     async def get_all(self) -> list[Menu]:
         query = await self.session.execute(
             select(
@@ -42,7 +41,7 @@ class MenuCRUD:
         )
         return query.all()
 
-    @cache
+    # @cache
     async def get_by_id(self, menu_id: UUID) -> Menu:
         query = await self.session.execute(
             select(
@@ -64,14 +63,14 @@ class MenuCRUD:
                                 detail='menu not found')
         return item
 
-    @cache
+    # @cache
     async def create(self, item_data: BaseSchema) -> Menu:
         cursor_result: CursorResult = await self.session.execute(insert(Menu).values(**item_data.dict()))
         await self.session.commit()
         item = self.model(**cursor_result.context.compiled_parameters[0])
         return item
 
-    @cache
+    # @cache
     async def update(self, item_id: UUID, item_data: BaseSchema) -> Menu:
         item = await self._get(item_id)
         await self.session.execute(update(self.model).filter_by(id=item_id).values(**item_data.dict()))
@@ -80,7 +79,7 @@ class MenuCRUD:
 
         return item
 
-    @cache
+    # @cache
     async def delete(self, item_id: UUID) -> Menu:
         item = await self._get(item_id)
         await self.session.delete(item)
@@ -94,8 +93,8 @@ class MenuCRUD:
                                 detail='menu not found')
         return item
 
-    @cache
-    async def create_example(self, file_path: str):
+    # @cache
+    async def create_example(self, file_path: str) -> dict:
         pass
         with open(file_path, encoding='utf8') as file:
             example_data = json.load(file)
@@ -126,17 +125,18 @@ class MenuCRUD:
         await self.session.commit()
         return {'message': 'database filled'}
 
-    async def generate_excel(self):
+    async def generate_excel(self) -> dict:
         query = await self.session.scalars(select(Menu).options(joinedload('submenus'), joinedload('submenus.dishes')))
         full_menus_data = query.unique().all()
+        # q = jsonable_encoder(full_menus_data)
         task = gen_excel_task.apply_async(
             (pickle.dumps(full_menus_data),), serializer='pickle')
 
         return {'file_id': task.id}
 
-    async def get_excel(self, file_id: UUID):
+    async def get_excel(self, file_id: UUID) -> FileResponse:
         file_name = f'{file_id}.xlsx'
-        file_path = os.path.join(GENERATED_FILES_DIR, file_name)
+        file_path = os.path.join(GENERATED_FILES_DIRNAME, file_name)
         if not os.path.exists(file_path):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail='file not found')
@@ -145,7 +145,7 @@ class MenuCRUD:
             path=file_path,
             filename='Меню.xlsx',
             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            background=BackgroundTask(self.cleanup, file_path)
+            background=BackgroundTask(self.cleanup, file_path),
         )
 
     @staticmethod
@@ -158,7 +158,7 @@ class SubmenuCRUD:
         self.session: AsyncSession = session
         self.model: type[Submenu] = Submenu
 
-    @cache
+    # @cache
     async def get_all(self, menu_id: UUID) -> list[Submenu]:
         query = await self.session.execute(
             select(
@@ -173,7 +173,7 @@ class SubmenuCRUD:
         )
         return query.all()
 
-    @cache
+    # @cache
     async def get_by_id(self, submenu_id: UUID, menu_id: UUID) -> Submenu:
         query = await self.session.execute(
             select(
@@ -193,21 +193,21 @@ class SubmenuCRUD:
                                 detail='submenu not found')
         return item
 
-    @cache
+    # @cache
     async def create(self, item_data: BaseSchema, menu_id: UUID) -> Submenu:
         cursor_result = await self.session.execute(insert(self.model).values(**item_data.dict(), menu_id=menu_id))
         await self.session.commit()
         item = self.model(**cursor_result.context.compiled_parameters[0])
         return item
 
-    @cache
+    # @cache
     async def delete(self, item_id: UUID, menu_id: UUID):
         item = await self._get(item_id, menu_id)
         await self.session.delete(item)
         await self.session.commit()
         return item
 
-    @cache
+    # @cache
     async def update(self, item_id: UUID, item_data: BaseSchema, menu_id: UUID) -> Submenu:
         item = await self._get(item_id, menu_id)
         await self.session.execute(update(self.model).filter_by(id=item_id, menu_id=menu_id).values(**item_data.dict()))
@@ -231,30 +231,30 @@ class DishCRUD:
         self.session: AsyncSession = session
         self.model: type[Dish] = Dish
 
-    @cache
+    # @cache
     async def get_all(self, submenu_id: UUID) -> list[Dish]:
         items = await self.session.scalars(select(Dish).filter(Dish.submenu_id == submenu_id))
         return items.all()
 
-    @cache
+    # @cache
     async def get_by_id(self, dish_id: UUID, submenu_id: UUID) -> Dish:
         return await self._get(dish_id, submenu_id)
 
-    @cache
+    # @cache
     async def create(self, item_data: BaseSchema, submenu_id: UUID, *args, **kwargs) -> Dish:
         cursor_result = await self.session.execute(insert(self.model).values(**item_data.dict(), submenu_id=submenu_id))
         await self.session.commit()
         item = self.model(**cursor_result.context.compiled_parameters[0])
         return item
 
-    @cache
+    # @cache
     async def delete(self, item_id: UUID, submenu_id: UUID, *args, **kwargs):
         item = await self._get(item_id, submenu_id)
         await self.session.delete(item)
         await self.session.commit()
         return item
 
-    @cache
+    # @cache
     async def update(self, item_id: UUID, item_data: BaseSchema, submenu_id: UUID) -> Dish:
         item = await self._get(item_id, submenu_id)
         await self.session.execute(

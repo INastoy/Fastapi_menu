@@ -3,8 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 
-from apps.menu.crud import DishCRUD
 from apps.menu.schemas import DishBaseSchema, DishSchema
+from apps.menu.services import DishService
 from core.openapi.responses import RESPONSE_303, RESPONSE_404
 
 router = APIRouter(
@@ -17,7 +17,7 @@ router = APIRouter(
     status_code=HTTP_200_OK,
     summary='Список блюд подменю',
 )
-async def get_dishes(submenu_id: uuid.UUID, dish: DishCRUD = Depends()):
+async def get_dishes(submenu_id: uuid.UUID, dish: DishService = Depends()):
     """Возвращает список блюд указанного подменю"""
     return await dish.get_all(submenu_id)
 
@@ -29,7 +29,7 @@ async def get_dishes(submenu_id: uuid.UUID, dish: DishCRUD = Depends()):
     summary='Получить блюдо',
     responses=RESPONSE_404,
 )
-async def get_dish(submenu_id: uuid.UUID, dish_id: uuid.UUID, dish: DishCRUD = Depends()):
+async def get_dish(submenu_id: uuid.UUID, dish_id: uuid.UUID, dish: DishService = Depends()):
     """Возвращает указанное блюдо"""
     return await dish.get_by_id(dish_id, submenu_id)
 
@@ -45,7 +45,7 @@ async def create_dish(
     submenu_id: uuid.UUID,
     dish_data: DishBaseSchema,
     menu_id: uuid.UUID,
-    dish: DishCRUD = Depends(),
+    dish: DishService = Depends(),
 ):
     """Создает новое блюдо"""
     return await dish.create(dish_data, submenu_id, menu_id)
@@ -56,7 +56,7 @@ async def delete_dish(
     submenu_id: uuid.UUID,
     dish_id: uuid.UUID,
     menu_id: uuid.UUID,
-    dish: DishCRUD = Depends(),
+    dish: DishService = Depends(),
 ):
     """Удаляет указанное блюдо"""
     return await dish.delete(dish_id, submenu_id, menu_id)
@@ -66,8 +66,9 @@ async def delete_dish(
 async def update_dish(
     submenu_id: uuid.UUID,
     dish_id: uuid.UUID,
+    menu_id: uuid.UUID,
     dish_data: DishBaseSchema,
-    dish: DishCRUD = Depends(),
+    dish: DishService = Depends(),
 ):
     """Обновляет указанное блюдо"""
-    return await dish.update(dish_id, dish_data, submenu_id)
+    return await dish.update(dish_id, dish_data, submenu_id, menu_id)

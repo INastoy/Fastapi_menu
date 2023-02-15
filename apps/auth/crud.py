@@ -37,8 +37,8 @@ class UserCRUD:
         )
         try:
             cursor: CursorResult = await self.session.execute(
-                insert(User)
-                .values(**UserAuthSchema.from_orm(user).dict()))
+                insert(User).values(**UserAuthSchema.from_orm(user).dict())
+            )
         except IntegrityError:
             raise HTTPException(
                 status_code=status.HTTP_303_SEE_OTHER, detail='User already exists')

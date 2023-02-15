@@ -9,12 +9,15 @@
 
 
 1. Регистрация и авторизация пользователей с использованием JWT токенов
-2. Эндпоинты для создания/изменения/просмотра/удаления меню, подменю и блюд
-3. Кэширование данных в Redis при Get запросе и удаление кешированных данных при Post/Patch/Delete запросах
-4. Выполнение длительных операций вынесено в Celery task. Доступ к результатам производится по id таска.
-5. Тесты для CRUD операций
-6. Подробная документация проекта
-7. Весь проект завернут в докер-контейнеры и поднимается одной командой
+2. Валидация вводимого email и password
+3. Эндпоинты для создания/изменения/просмотра/удаления меню, подменю и блюд
+4. Эндпоинт для тестового заполнения БД (menus/fill)
+5. Энпоинты для формирования и выгрузки всех меню с подменю и блюдами в Excel документ
+6. Написаны тесты для CRUD операций
+7. Кэширование данных в Redis при Get запросе и удаление кешированных данных при Post/Patch/Delete запросах
+8. Выполнение длительных операций вынесено в Celery task. Доступ к результатам производится по id таска.
+9. Весь проект завернут в докер-контейнеры и поднимается одной командой
+10. Подробная документация проекта доступна по адресу /docs
 
 </details>
 
@@ -61,12 +64,16 @@ pip install -r requirements.txt
 >PROD_DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_ylab:5432/ylab"\
 >DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/menu_test"
 >
+>REDIS_DB_NUM = "0"
 >TEST_CACHE_URL = "redis://test_redis_ylab:6379/0"\
 >PROD_CACHE_URL = "redis://redis_ylab:6379/0"\
 >CACHE_URL = "redis://localhost:6379/0"
 >
-> PROD_CELERY_BROKER_URL = "pyamqp://guest:guest@rabbitmq_ylab//"\
+>PROD_CELERY_BROKER_URL = "pyamqp://guest:guest@rabbitmq_ylab//"\
 >CELERY_BROKER_URL = "pyamqp://guest:guest@localhost//"
+>
+>RABBITMQ_DEFAULT_USER = "guest"\
+>RABBITMQ_DEFAULT_PASS = "guest"
 >
 >JWT_SECRET = "OLzrLAYYMA26jkMkAp737lLJIDUjJUBHA3PVbtgwTdw"
 

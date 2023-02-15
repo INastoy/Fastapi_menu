@@ -15,13 +15,8 @@ class UserCreateSchema(BaseUserSchema):
     password: str = Field(min_length=6, max_length=30)
 
     class Config:
-        schema_extra = {
-            'example': {
-                'email': 'example@example.com',
-                'username': 'username',
-                'password': 'password'
-            }
-        }
+        schema_extra = {'example': {'email': 'example@example.com',
+                                    'username': 'username', 'password': 'password'}}
 
 
 class UserAuthSchema(BaseUserSchema):

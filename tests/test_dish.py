@@ -12,11 +12,10 @@ from apps.menu.crud import DishCRUD
 from apps.menu.models import Dish, Menu, Submenu
 from apps.menu.schemas import DishSchema
 
-
-def as_dict(model: Dish):
-    r = {column: str(getattr(model, column))
-         for column in model.__table__.c.keys()}
-    return r
+# def as_dict(model: Dish):
+#     r = {column: str(getattr(model, column))
+#          for column in model.__table__.c.keys()}
+#     return r
 
 
 @pytest.mark.asyncio
@@ -80,13 +79,13 @@ class TestDish:
                 Dish).filter_by(submenu_id=self.submenu1.id)
         )
 
-        yield
-        await self.session.delete(self.menu1)
-        await self.session.delete(self.submenu1)
-        await self.session.delete(self.dish1)
-        await self.session.commit()
-        await self.session.close()
-        print('teardown')
+        # yield
+        # await self.session.delete(self.menu1)
+        # await self.session.delete(self.submenu1)
+        # await self.session.delete(self.dish1)
+        # await self.session.commit()
+        # await self.session.close()
+        # print('teardown')
 
     async def test_get_dishes_ok(self, client: AsyncClient, dish: DishCRUD):
         response = await client.get(
@@ -122,7 +121,7 @@ class TestDish:
         assert response.status_code == 201
         assert dish_from_response == dish_from_db.dict()
 
-    async def test_update_dish_ok(self, client: AsyncClient, dish: DishCRUD, session):
+    async def test_update_dish_ok(self, client: AsyncClient, session):
         old_dish = await session.scalar(select(Dish).filter_by(id=self.dish1.id, submenu_id=self.submenu1.id))
         assert DishSchema.from_orm(old_dish) == DishSchema.from_orm(self.dish1)
         response = await client.patch(

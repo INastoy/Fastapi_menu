@@ -15,7 +15,7 @@ from apps.menu.schemas import BaseSchema, MenuSchema
 @pytest.mark.asyncio
 @pytest.mark.usefixtures('setup_class')
 class TestMenu:
-    @pytest_asyncio.fixture
+    @pytest_asyncio.fixture()
     async def setup_class(self, session: AsyncSession):
         self.session = session
         await self.session.execute(insert(Menu).values(title='test_title1', description='test_desc1'))
@@ -28,17 +28,10 @@ class TestMenu:
         self.data_for_update = dict(
             title='updated_title', description='updated_description')
         self.menus_count = await self.session.scalar(select(func.count()).select_from(Menu))
-        yield
-
-        await session.delete(self.menu1)
-        await session.commit()
-        await session.close()
-        print('teardown')
 
     async def test_get_menus_ok(self, client: AsyncClient, menu: MenuCRUD):
         response = await client.get('/api/v1/menus/')
         menus_from_db = [MenuSchema.from_orm(menu) for menu in await menu.get_all()]
-
         assert len(response.json()) == self.menus_count
         assert response.status_code == 200
         assert response.json() == menus_from_db

@@ -47,13 +47,6 @@ class TestSubmenu:
                 Submenu).filter_by(menu_id=self.menu1.id)
         )
 
-        yield
-        await self.session.delete(self.menu1)
-        await self.session.delete(self.submenu1)
-        await self.session.commit()
-        await self.session.close()
-        print('teardown')
-
     async def test_get_submenus_ok(self, client: AsyncClient, submenu: SubmenuCRUD):
         response = await client.get(f'/api/v1/menus/{self.menu1.id}/submenus', follow_redirects=True)
         submenus_from_db = [SubmenuSchema.from_orm(submenu) for submenu in await submenu.get_all(menu_id=self.menu1.id)]
